@@ -1,3 +1,4 @@
+import json
 from util.stock import BMV
 
 
@@ -5,14 +6,21 @@ stock_dict = {
     "AC": "AC-6081"
 }
 
+
 class StatisticsService(object):
 
-    def __init__(self, stock):
-        self.bmv = BMV()
-        self.stock_id = stock_dict.get(stock)
+    found = None
+    bmv = None
+    stock_id = None
 
-    def get_url(self, stock_id):
-        return "https://www.bmv.com.mx/en/issuers/statistics/{}".format(stock_id)
+    def __init__(self, stock):
+        self.found = stock in stock_dict
+        self.bmv = BMV() if self.found else None
+        self.stock_id = stock_dict.get(stock) if self.found else None
 
     def get_statistcs(self):
-        return self.bmv.get_bmv_statistics(self.get_url(self.stock_id)).jsonify()
+        if not self.found:
+            return json.dumps(
+                {"error": "stock not found"}
+            )
+        return self.bmv.get_bmv_statistics(self.stock_id).jsonify()

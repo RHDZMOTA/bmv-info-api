@@ -8,18 +8,80 @@ class BMV(object):
         self.browser = webdriver.PhantomJS()
         self.browser.set_window_size(1120, 550)
 
-    def valid_url(self, url):
-        return "https://www.bmv.com.mx" in url
-
-    def get_bmv_statistics(self, url):
-        if not self.valid_url(url):
-            return {}
-        url = "https://www.bmv.com.mx/en/issuers/statistics/AC-6081-1959"
+    def get_bmv_statistics(self, stock_id):
+        url = "https://www.bmv.com.mx/en/issuers/statistics/" + stock_id
         self.browser.get(url)
         market_rates = self.browser.find_element_by_id("tableMarketRates")
         indicators = self.browser.find_element_by_id("tableIndicators")
+        return StockStatistics(
+            str(stock_id),
+            str(market_rates.text),
+            str(indicators.text))
 
-        return StockMarketRates(str(market_rates.text))
+
+class StockStatistics(object):
+
+    def __init__(self, stock_id, market_rates_text, indicators_text):
+        self.stock_id = stock_id
+        self.stock_market_rates = StockMarketRates(market_rates_text)
+        self.stock_indicators = StockIndicators(indicators_text)
+
+    def to_dict(self):
+        return {
+            "stock_id": self.stock_id,
+            "stock_market_rates": self.stock_market_rates.to_dict(),
+            "stock_indicators": self.stock_indicators.to_dict()
+        }
+
+    def jsonify(self):
+        return json.dumps(self.to_dict())
+
+
+class StockIndicators(object):
+    price_earnings_ratio = None
+    price_book_value_ratio = None
+    earnings_per_share = None
+    book_value_per_share = None
+    shares_outstanding = None
+
+    def __init__(self, text):
+        self.text = text
+        self.set_price_earnings_ratio()
+        self.set_price_book_value_ratio()
+        self.set_earnings_per_share()
+        self.set_book_value_per_share()
+        self.set_shares_outstanding()
+
+    @staticmethod
+    def filter_str(text, word, sep="\n"):
+        return list(filter(lambda x: word.lower() in x, text.lower().split(sep)))[0]
+
+    def extract_value(self, key_word, text):
+        return self.filter_str(text, key_word).replace(key_word.lower(), "").replace(" ", "")
+
+    def set_price_earnings_ratio(self):
+        self.price_earnings_ratio = self.extract_value("Price/Earnings Ratio", self.text)
+
+    def set_price_book_value_ratio(self):
+        self.price_book_value_ratio = self.extract_value("Price/Book Value Ratio", self.text)
+
+    def set_earnings_per_share(self):
+        self.earnings_per_share = self.extract_value("Earnings Per Share Ratio", self.text)
+
+    def set_book_value_per_share(self):
+        self.book_value_per_share = self.extract_value("Book Value per Share", self.text)
+
+    def set_shares_outstanding(self):
+        self.shares_outstanding = self.extract_value("Shares Outstanding", self.text)
+
+    def to_dict(self):
+        return self.__dict__
+
+    def jsonify(self):
+        return json.dumps(self.to_dict())
+
+    def to_string(self):
+        return self.text
 
 
 class StockMarketRates(object):
