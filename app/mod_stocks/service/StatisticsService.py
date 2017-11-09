@@ -22,4 +22,6 @@ class StatisticsService(object):
                     "allowed_stocks": get_allowed_data()
                  }
             )
-        return self.bmv.get_bmv_statistics(self.stock_id).jsonify()
+        stats = self.bmv.get_bmv_statistics(self.stock_id).jsonify()
+        self.bmv.close_connection()
+        return stats
