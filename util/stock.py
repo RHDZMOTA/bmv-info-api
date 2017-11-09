@@ -13,6 +13,7 @@ class BMV(object):
         self.browser.get(url)
         market_rates = self.browser.find_element_by_id("tableMarketRates")
         indicators = self.browser.find_element_by_id("tableIndicators")
+        self.browser.quit()
         return StockStatistics(
             str(stock_id),
             str(market_rates.text),
